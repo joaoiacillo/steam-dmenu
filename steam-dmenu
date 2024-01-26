@@ -26,6 +26,7 @@ map_apps() {
 MAP="$(map_apps)"
 
 choose_app() {
+    echo "$ARGS" > /dev/stderr
     echo "$MAP"                                     |
         cut -d: -f2                                 |
         dmenu -p "[run:steamapp]" "$@"
@@ -37,7 +38,7 @@ get_app_id() {
         cut -d: -f1
 }
 
-APP=$(choose_app)
+APP=$(choose_app "$@")
 test $? -ne 0 && exit 1 # No selections? Then no steam for you.
 APPID=$(get_app_id)
 test -z "$APPID" && exit 1 # No App ID? Then no steam either.
