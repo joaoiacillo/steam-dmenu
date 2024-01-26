@@ -1,0 +1,45 @@
+#!/bin/sh
+
+# steam-dmenu (v1.0) :: A Steam app launcher for dmenu
+#  by João Iacillo <joaopiacillo@outlook.com.br>
+
+# If your steam is located elsewhere in the system, you can export a STEAMROOT
+# variable and this script will grab the custom value.
+STEAMROOT=${STEAMROOT-~/.local/share/Steam}
+STEAMAPPSROOT=$STEAMROOT/steamapps
+
+# Each app contains it's own manifest file for holding info about it.
+# This includes the app's name and ID, important data for this script. 
+MANIFESTS="$(ls $STEAMAPPSROOT -A | grep appmanifest)"
+
+map_apps() {
+    cd $STEAMAPPSROOT
+    cat $MANIFESTS                                  |
+        grep -Ee "name|appid"                       |
+        sed -E "s/\"(name|appid)\"[\s\t]+//"        |
+        tr -d "\"\t"                                |
+        # Maps "APPID'\n'APPNAME'\n'APPID'\n'APPNAME" into
+        # "APPID:APPNAME'\n'APPID:APPNAME", for easier text manipulation.
+        paste -d: - -
+}
+
+MAP="$(map_apps)"
+
+choose_app() {
+    echo "$MAP"                                     |
+        cut -d: -f2                                 |
+        dmenu -p "[run:steamapp]" "$@"
+}
+
+get_app_id() {
+    echo "$MAP"                                     |
+        grep "$APP"                                 |
+        cut -d: -f1
+}
+
+APP=$(choose_app)
+test $? -ne 0 && exit 1 # No selections? Then no steam for you.
+APPID=$(get_app_id)
+test -z "$APPID" && exit 1 # No App ID? Then no steam either.
+
+( steam -silent steam://rungameid/$APPID & )
